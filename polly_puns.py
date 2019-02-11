@@ -24,11 +24,12 @@ def get_kicks_crashes(path_prefix='sample'):
 
 
 def get_soundfile_data_only(file_name):
+    """get data from soundfile, assuming sample rate is consistent"""
     data, sr = sf.read(file_name)
     # handle case of multiple channels
     if len(data.shape) > 1 and data.shape[1] >= 2:
         return (data[:,0] + data[:,1]) / 2
-    return data
+    return normalized(data)
 
 
 def get_rand_two_kicks_crash(kicks, crashes):
@@ -39,10 +40,16 @@ def get_rand_two_kicks_crash(kicks, crashes):
     return np.concatenate(two_kicks + one_crash)
 
 
+def normalized(data, epsilon=0.01):
+    # normalize to prevent volumes being distinct. add epsilon to avoid dividing by 0
+    return data / (epsilon + np.max(np.abs(data)))
+
+
 def add_sound_effect(file_name, kicks, crashes):
     """add sound effect to the end of a sound from a file and write back to the same file"""
     data, sr = sf.read(file_name)
-    data_with_end = np.concatenate([data, get_rand_two_kicks_crash(kicks, crashes)])
+    data_with_end = np.concatenate([normalized(data),
+                                    get_rand_two_kicks_crash(kicks, crashes)])
     sf.write(file_name, data_with_end, sr)
 
 
@@ -86,7 +93,6 @@ def get_parsed_args():
     parser.add_argument('--output', required=True,
                         help='output folder')
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     puns = get_puns()
